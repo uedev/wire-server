@@ -28,7 +28,7 @@ import System.Logger (Logger)
 import System.Random (randomIO)
 import Test.Tasty
 import Test.Tasty.HUnit
-import Util
+import Util hiding (test)
 import Util.Options.Common
 
 import qualified Brig.Options         as Opts
@@ -42,36 +42,76 @@ import qualified Data.UUID.V4         as UUID
 
 import qualified Network.Wai.Utilities.Error as Error
 
-tests :: Maybe Opts.Opts -> Manager -> Logger -> Brig -> IO TestTree
-tests conf m _ b = do
-    z <- mkZAuthEnv conf
-    return $ testGroup "auth"
-        [ testGroup "login"
-            [ test m "email" (testEmailLogin b)
-            , test m "phone" (testPhoneLogin b)
-            , test m "handle" (testHandleLogin b)
-            , test m "email-untrusted-domain" (testLoginUntrustedDomain b)
-            , test m "send-phone-code" (testSendLoginCode b)
-            , test m "failure" (testLoginFailure b)
-            , test m "throttle" (testThrottleLogins conf b)
-            ]
-        , testGroup "refresh"
-            [ test m "invalid-cookie" (testInvalidCookie z b)
-            , test m "invalid-token" (testInvalidToken b)
-            , test m "missing-cookie" (testMissingCookie z b)
-            , test m "unknown-cookie" (testUnknownCookie z b)
-            , test m "new-persistent-cookie" (testNewPersistentCookie conf b)
-            , test m "new-session-cookie" (testNewSessionCookie conf b)
-            ]
-        , testGroup "cookies"
-            [ test m "list" (testListCookies b)
-            , test m "remove-by-label" (testRemoveCookiesByLabel b)
-            , test m "remove-by-label-id" (testRemoveCookiesByLabelAndId b)
-            , test m "limit" (testTooManyCookies conf b)
-            , test m "logout" (testLogout b)
-            ]
-        , testGroup "reauth"
-            [ test m "reauthorisation" (testReauthorisation b)
+-- tests :: Maybe Opts.Opts -> Manager -> Logger -> Brig -> IO TestTree
+-- tests conf m _ b = do
+--     z <- mkZAuthEnv conf
+--     return $ testGroup "auth"
+--         -- [ testGroup "login"
+--         --     [ test m "email" (testEmailLogin b)
+--         --     , test m "phone" (testPhoneLogin b)
+--         --     , test m "handle" (testHandleLogin b)
+--         --     , test m "email-untrusted-domain" (testLoginUntrustedDomain b)
+--         --     , test m "send-phone-code" (testSendLoginCode b)
+--         --     , test m "failure" (testLoginFailure b)
+--         --     , test m "throttle" (testThrottleLogins conf b)
+--         --     ]
+--         -- , testGroup "refresh"
+--         --     [ test m "invalid-cookie" (testInvalidCookie z b)
+--         --     , test m "invalid-token" (testInvalidToken b)
+--         --     , test m "missing-cookie" (testMissingCookie z b)
+--         --     , test m "unknown-cookie" (testUnknownCookie z b)
+--         --     , test m "new-persistent-cookie" (testNewPersistentCookie conf b)
+--         --     , test m "new-session-cookie" (testNewSessionCookie conf b)
+--         --     ]
+--         -- , testGroup "cookies"
+--         --     [ test m "list" (testListCookies b)
+--         --     , test m "remove-by-label" (testRemoveCookiesByLabel b)
+--         --     , test m "remove-by-label-id" (testRemoveCookiesByLabelAndId b)
+--         --     , test m "limit" (testTooManyCookies conf b)
+--         --     , test m "logout" (testLogout b)
+--         --     ]
+--         [ testGroup "reauth"
+--             [ test m "reauthorisation" testReauthorisation
+--             ]
+--         ]
+
+--z <- mkZAuthEnv conf
+
+test :: IO TestSetup -> TestName -> TestSignature a -> TestTree
+test s n h = testCase n runTest
+  where
+    runTest = do
+        setup <- s
+        (void $ runHttpT (manager setup) (h (brg setup) (cann setup) (gall setup) (cass setup)))
+
+tests :: Maybe Opts.Opts -> IO TestSetup -> TestTree
+tests c s = testGroup "auth"
+        -- [ testGroup "login"
+        --     [ test m "email" (testEmailLogin b)
+        --     , test m "phone" (testPhoneLogin b)
+        --     , test m "handle" (testHandleLogin b)
+        --     , test m "email-untrusted-domain" (testLoginUntrustedDomain b)
+        --     , test m "send-phone-code" (testSendLoginCode b)
+        --     , test m "failure" (testLoginFailure b)
+        --     , test m "throttle" (testThrottleLogins conf b)
+        --     ]
+        -- , testGroup "refresh"
+        --     [ test m "invalid-cookie" (testInvalidCookie z b)
+        --     , test m "invalid-token" (testInvalidToken b)
+        --     , test m "missing-cookie" (testMissingCookie z b)
+        --     , test m "unknown-cookie" (testUnknownCookie z b)
+        --     , test m "new-persistent-cookie" (testNewPersistentCookie conf b)
+        --     , test m "new-session-cookie" (testNewSessionCookie conf b)
+        --     ]
+        -- , testGroup "cookies"
+        --     [ test m "list" (testListCookies b)
+        --     , test m "remove-by-label" (testRemoveCookiesByLabel b)
+        --     , test m "remove-by-label-id" (testRemoveCookiesByLabelAndId b)
+        --     , test m "limit" (testTooManyCookies conf b)
+        --     , test m "logout" (testLogout b)
+        --     ]
+        [ testGroup "reauth"
+            [ test s "reauthorisation" $ testReauthorisation c
             ]
         ]
 
@@ -466,8 +506,8 @@ testLogout b = do
     post (b . path "/access" . cookie c) !!!
         const 403 === statusCode
 
-testReauthorisation :: Brig -> Http ()
-testReauthorisation b = do
+testReauthorisation :: Maybe Opts.Opts -> TestSignature ()
+testReauthorisation _ b _ _ _ = do
     u <- userId <$> randomUser b
 
     let js = Http.body . RequestBodyLBS . encode $ object ["foo" .= ("bar" :: Text) ]

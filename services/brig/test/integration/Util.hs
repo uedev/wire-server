@@ -33,6 +33,7 @@ import Test.Tasty (TestName, TestTree)
 import Test.Tasty.HUnit
 import Test.Tasty.Cannon
 
+import qualified Cassandra as Cql
 import qualified Data.Text.Ascii as Ascii
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C8
@@ -48,6 +49,23 @@ type Cannon  = Request -> Request
 type Galley  = Request -> Request
 
 type ResponseLBS = Response (Maybe Lazy.ByteString)
+
+data TestSetup = TestSetup
+  { manager :: Manager
+  , brg     :: Brig 
+  , cann    :: Util.Cannon
+  , gall    :: Galley
+  , cass    :: Cql.ClientState
+  }
+
+type TestSignature a = Brig -> Util.Cannon -> Galley -> Cql.ClientState -> Http a
+
+test' :: IO TestSetup -> TestName -> (TestSignature a) -> TestTree
+test' s n h = testCase n runTest
+  where
+    runTest = do
+        setup <- s
+        (void $ runHttpT (manager setup) (h (brg setup) (cann setup) (gall setup) (cass setup)))
 
 test :: Manager -> TestName -> Http a -> TestTree
 test m n h = testCase n (void $ runHttpT m h)
