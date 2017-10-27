@@ -88,6 +88,7 @@ import OpenSSL.EVP.Digest (getDigestByName, Digest)
 import OpenSSL.Session (SSLOption (..))
 import System.Directory (canonicalizePath)
 import System.Logger.Class hiding (Settings, settings)
+import Util.Options
 
 import qualified Bilge                    as RPC
 import qualified Brig.Aws.Types           as Aws
@@ -110,8 +111,6 @@ import qualified System.FilePath          as Path
 import qualified System.FSNotify          as FS
 import qualified System.Logger            as Log
 import qualified System.Logger.Class      as LC
-import Util.Options             as Opt
-import Util.Options.Common      as Opt
 
 schemaVersion :: Int32
 schemaVersion = 43

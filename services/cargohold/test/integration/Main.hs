@@ -10,8 +10,8 @@ import GHC.Generics
 import Network.HTTP.Client (responseTimeoutMicro)
 import Network.HTTP.Client.TLS
 import OpenSSL
-import Util.Options as Opts
-import Util.Options.Common as Opts
+import Util.Options
+import Util.Options.Common
 import Util.Test
 import Test.Tasty
 
@@ -19,7 +19,7 @@ import qualified API.V3
 
 data IntegrationConfig = IntegrationConfig
   -- internal endpoint
-  { cargohold :: Opts.Endpoint
+  { cargohold :: Endpoint
   } deriving (Show, Generic)
 
 instance FromJSON IntegrationConfig
@@ -40,7 +40,7 @@ main = withOpenSSL $ runTests go
         }
         let local p = Endpoint { _epHost = "127.0.0.1", _epPort = p }
         iConf <- handleParseError =<< decodeFileEither i
-        cp <- Opts.optOrEnv cargohold iConf (local . read) "CARGOHOLD_WEB_PORT"
+        cp <- optOrEnv cargohold iConf (local . read) "CARGOHOLD_WEB_PORT"
         let cg = host "127.0.0.1" . port (cp^.epPort)
         return $ API.V3.TestSetup m cg
 
