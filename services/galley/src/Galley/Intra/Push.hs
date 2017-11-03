@@ -164,7 +164,6 @@ push ps = do
             & Gundeck.pushTransient        .~ _pushTransient p
             & maybe id (set Gundeck.pushNativePriority) (_pushNativePriority p)
 
-
     toRecipient p r =
           Gundeck.recipient (_recipientUserId r) (_pushRoute p)
         & Gundeck.recipientClients  .~ _recipientClients r

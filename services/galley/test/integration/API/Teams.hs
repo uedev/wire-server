@@ -686,7 +686,7 @@ testUpdateTeamMember g b c a = do
         let e = List1.head (WS.unpackPayload notif)
         e^.eventType @?= MemberUpdate
         e^.eventTeam @?= tid
-        e^.eventData @?= Just (EdMemberUpdate uid)
+        e^.eventData @?= Just (EdMemberUpdate uid Nothing)
 
 testUpdateTeamStatus :: Galley -> Brig -> Cannon -> Maybe Aws.Env -> Http ()
 testUpdateTeamStatus g b _ a = do
