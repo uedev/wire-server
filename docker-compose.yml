@@ -1,0 +1,51 @@
+# This version reuses our services from quay
+# version: '3'
+# services:
+# cassandra:
+#   hostname: cassandra
+#   image: cassandra:3.11.0
+#   command: /bin/bash -c "sleep 1 && echo ' -- Pausing to let system catch up ... -->' && /docker-entrypoint.sh cassandra -f"
+#   ports:
+#     - 7000:7000
+#     - 7001:7001
+#     - 7199:7199
+#     - 9042:9042
+#     - 9160:9160
+# gundeck-redis:
+#   image: "redis:alpine"
+# gundeck:
+#   env_file: services/.env
+#   image: "quay.io/wire/gundeck"
+#   TODO: Use wait-for
+#   entrypoint: 'sh -c "while true; do gundeck -c /config/gundeck.yaml.example; sleep 5; done"'
+#   ports:
+#     - 8001:8001
+#   volumes:
+#     - ./services/gundeck:/config
+
+# This version builds the service from scratch
+version: '3'
+services:
+  # cassandra:
+  #   hostname: cassandra
+  #   image: cassandra:3.11.0
+  #   command: /bin/bash -c "sleep 1 && echo ' -- Pausing to let system catch up ... -->' && /docker-entrypoint.sh cassandra -f"
+  #   ports:
+  #     - 7000:7000
+  #     - 7001:7001
+  #     - 7199:7199
+  #     - 9042:9042
+  #     - 9160:9160
+  # gundeck-redis:
+  #   image: "redis:alpine"
+  gundeck:
+    env_file: services/.env
+    build:
+      context: build/alpine
+      args:
+        service: gundeck
+    entrypoint: 'sh -c "while true; do gundeck -c /config/gundeck.yaml.example; sleep 5; done"'
+    ports:
+      - 8001:8001
+    volumes:
+      - ./services/gundeck:/config
